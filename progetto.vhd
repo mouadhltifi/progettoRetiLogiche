@@ -236,70 +236,93 @@ end Behavioral;
 
 
     -- State Machine
-    process(i_clk, i_rst)
+    process(i_clk, i_res)
     begin
-        if i_rst = '1' then
-            state <= reset;
-        elsif rising_edge(i_clk) then
+        if(i_res = '1') then
+            cur_state <= reset;
+        elsif i_clk'event and i_clk = '1' then
+            cur_state <= next_state;
+        end if;
+    end process;
 
-            case state is
+    process(cur_state, i_start, o_end)
+    begin
+        next_state <= cur_state;
+
+            case cur_state is
                 when reset =>
+                    next_state <= waiting_start;
                     
-
-                    if i_start = '1' then
-                        state <= read_channel;
-                    end if;
-
-
-
                 when waiting_start =>
-                    if bit_count = 2 then
-                        bit_count <= 0;
-                        state <= read_address;
-                    end if;
-
-
-                when reading_z0_bit =>
                     if i_start = '0' then
-                        bit_count <= 0;
-                        state <= output_data;
+                        next_state <= waiting_start;
+                    else
+                        next_state <= reading_z1_bit;                        
                     end if;
+
                 when reading_z1_bit =>
-                    if o_done = '1' then
-                        o_done <= '0';
-                        state <= idle;
-                    end if;
-
-
+                if i_start ='1' then
+                    next_state <= reading_address_bit;
+                else
+                    next_state <= waiting_mem;
+            
                 when reding_address_bits =>
-                if o_done = '1' then
-                    o_done <= '0';
-                    state <= idle;
+                if i_start = '1' then
+                    next_state <= reading_address_bit;
+                else
+                    next_state <= waiting_mem;
                 end if;
-                
                 
                 when waiting_mem =>
-                if o_done = '1' then
-                    o_done <= '0';
-                    state <= idle;
+                if mem_done = '1' then
+                    next_state <= loading_data;
+                else
+                    next_state <= waiting_mem;
                 end if;
+
                 when loading_data =>
-                if o_done = '1' then
-                    o_done <= '0';
-                    state <= idle;
+                    next_state <= saving_data;
                 end if;
+
                 when saving_data =>
-                if o_done = '1' then
-                    o_done <= '0';
-                    state <= idle;
+                    next_state <= output_data;
                 end if;
+
                 when output_data =>
-                if o_done = '1' then
-                    o_done <= '0';
-                    state <= idle;
+                    next_state <= waiting_start;
                 end if;
 
             end case;
         end if;
+    end process;
+
+    process(cur_state)
+    begin
+        b0_save <= '0';
+        b1_save <= '0';
+        mux_addr <= '0';
+        addr_save <= '0';
+        data_save <= '0';
+        out_save <= '0';
+        read <= '0';
+        o_done <= '0';
+
+        case cur_state is
+            when reset =>
+            when waiting_start =>
+                b0_save <= '1';
+            when reading_z1_bit =>
+                b1_save <= '1';
+            when reading_address_bit =>
+                mux_addr <= '1';
+                addr_save <= '1';
+            when waiting_mem =>
+                read = '1';
+            when loading_data =>
+                data_save = '1';
+            when saving_data =>
+                out_save = '1';
+            when output_data =>
+                o_done = '1';
     end process;
 end behavior;
