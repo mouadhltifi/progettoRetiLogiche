@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity project_reti_logiche is
-    port (
+    Port (
         i_clk : in std_logic;
         i_rst : in std_logic;
         i_start : in std_logic;
@@ -24,7 +24,7 @@ entity project_reti_logiche is
     );
     end project_reti_logiche;
 
-architecture behavior of project_reti_logiche is
+architecture Behavioral of project_reti_logiche is
     type state_type is (reset, waiting_start, reading_z1_bit, reading_address_bits, waiting_mem, loading_data, saving_data, output_data);
     signal cur_state, next_state : state_type;
 
@@ -37,11 +37,13 @@ architecture behavior of project_reti_logiche is
     signal addr_out : std_logic_vector(15 downto 0);
     signal address_vector : std_logic_vector(15 downto 0);
     signal reg_address : std_logic_vector(15 downto 0) := (others => '0');
+    signal mux_addr : std_logic;
 
     signal addr_save : std_logic;
     
     signal reg_data : std_logic_vector (7 downto 0);
     signal data_save : std_logic;
+    signal read : std_logic;
     
     signal out_save : std_logic;
     signal z0_save : std_logic;
@@ -56,6 +58,7 @@ architecture behavior of project_reti_logiche is
 
 begin
 
+    -- Datapath
     process(i_clk, i_rst)
     begin
         if(i_rst = '1') then
@@ -77,7 +80,112 @@ begin
             end if;
         end if;
     end process;
+
+    addr_in <= ("000000000000000" & i_w) + (reg_address(14 downto 0) & '0');
+
+    with mux_addr select
+        addr_out <= "0000000000000000" when '0',
+                    addr_in when '1',
+                    "XXXXXXXXXXXXXXXX" when others;
     
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            reg_address <= "0000000000000000";
+        elsif i_clk'event and i_clk = '1' then
+            if(addr_save = '1') then
+                reg_address <= addr_out;
+            end if;
+        end if;
+    end process;
+    
+    process(i_clk, i_rst)
+    begin
+        z0_save <= '0';
+        z1_save <= '0';
+        z2_save <= '0';
+        z3_save <= '0';
+        case (bit_0 & bit_1) is
+            when "00" =>
+                z0_save <= save_out;
+            when "01" =>
+                z1_save <= save_out;
+            when "10" =>
+                z2_save <= save_out;
+            when "11" =>
+                z3_save <= save_out;
+            when others =>
+            z0_save <= 'X';
+            z1_save <= 'X';
+            z2_save <= 'X';
+            z3_save <= 'X';
+        end case;
+    end process;
+    
+    --Come leggere e scrivere dalla memoria nel registro reg_data
+    o_mem_addr <= reg_address;
+
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            reg_data <= '0';
+        elsif i_clk'event and i_clk = '1' then
+            if(data_save = '1') then               
+                reg_data <= i_mem_data;
+            end if;
+        end if;
+    end process;
+    --Fine memoria (?)
+
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            o_z0_reg <= '0';
+        elsif i_clk'event and i_clk = '1' then
+            if(z0_save = '1') then
+                o_z0_reg <= reg_data;
+            end if;
+        end if;
+    end process;
+
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            o_z1_reg <= '0';
+        elsif i_clk'event and i_clk = '1' then
+            if(z1_save = '1') then
+                o_z1_reg <= reg_data;
+            end if;
+        end if;
+    end process;
+
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            o_z2_reg <= '0';
+        elsif i_clk'event and i_clk = '1' then
+            if(z2_save = '1') then
+                o_z2_reg <= reg_data;
+            end if;
+        end if;
+    end process;
+
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            o_z3_reg <= '0';
+        elsif i_clk'event and i_clk = '1' then
+            if(z3_save = '1') then
+                o_z3_reg <= reg_data;
+            end if;
+        end if;
+    end process;
+
+    o_z0 <= o_z0_reg;
+    o_z1 <= o_z1_reg;
+    o_z2 <= o_z2_reg;
+    o_z3 <= o_z3_reg;
+
     -- State Machine
     process(i_clk, i_rst)
     begin
@@ -110,7 +218,7 @@ begin
                     next_state <= waiting_mem;
                 end if;
             
-                when reding_address_bits =>
+                when reading_address_bits =>
                 if i_start = '1' then
                     next_state <= reading_address_bit;
                 else
@@ -147,6 +255,8 @@ begin
         out_save <= '0';
         read <= '0';
         o_done <= '0';
+        o_mem_we <= '0';
+        o_mem_en <= '0';
 
         case cur_state is
             when reset =>
@@ -158,14 +268,17 @@ begin
                 mux_addr <= '1';
                 addr_save <= '1';
             when waiting_mem =>
-                read = '1';
+                read <= '1';
+                o_mem_we <= '1';
+                o_mem_en <= '1';
             when loading_data =>
-                data_save = '1';
+                data_save <= '1';
             when saving_data =>
-                out_save = '1';
+                out_save <= '1';
             when output_data =>
-                o_done = '1';
+                o_done <= '1';
     end process;
+
 end Behavioral;
 
     
