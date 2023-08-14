@@ -1,0 +1,6 @@
+INFO: [VRFC 10-163] Analyzing VHDL file "C:/Users/Pier2/Desktop/Progetto reti logiche/project_reti_logiche_2023/project_reti_logiche_2023.srcs/sources_1/new/project_reti_logiche.vhd" into library xil_defaultlib
+INFO: [VRFC 10-3107] analyzing entity 'project_reti_logiche'
+ERROR: [VRFC 10-724] found '4' definitions of operator "&", cannot determine exact overloaded matching definition for "&" [C:/Users/Pier2/Desktop/Progetto reti logiche/project_reti_logiche_2023/project_reti_logiche_2023.srcs/sources_1/new/project_reti_logiche.vhd:82]
+ERROR: [VRFC 10-8605] 'case_expression' has 4 possible matching identifiers [C:/Users/Pier2/Desktop/Progetto reti logiche/project_reti_logiche_2023/project_reti_logiche_2023.srcs/sources_1/new/project_reti_logiche.vhd:103]
+ERROR: [VRFC 10-9458] unit 'behavioral' is ignored due to previous errors [C:/Users/Pier2/Desktop/Progetto reti logiche/project_reti_logiche_2023/project_reti_logiche_2023.srcs/sources_1/new/project_reti_logiche.vhd:27]
+INFO: [VRFC 10-8704] VHDL file 'C:/Users/Pier2/Desktop/Progetto reti logiche/project_reti_logiche_2023/project_reti_logiche_2023.srcs/sources_1/new/project_reti_logiche.vhd' is ignored due to errors
