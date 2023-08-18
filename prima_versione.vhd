@@ -28,10 +28,10 @@ architecture Behavioral of project_reti_logiche is
     type state_type is (reset, waiting_start, reading_z1_bit, reading_address_bits, waiting_mem, loading_data, saving_data, output_data);
     signal cur_state, next_state : state_type;
 
-    signal bit_0 : std_logic;
-    signal bit_1 : std_logic;
-    signal b0_save : std_logic;
-    signal b1_save : std_logic;
+    signal bit_0 : STD_LOGIC;
+    signal bit_1 : STD_LOGIC;
+    signal b0_save : STD_LOGIC;
+    signal b1_save : STD_LOGIC;
 
     signal addr_in : std_logic_vector(15 downto 0);
     signal addr_out : std_logic_vector(15 downto 0);
@@ -81,6 +81,11 @@ begin
 
     addr_in <= std_logic_vector((unsigned("000000000000000" & i_w) + (unsigned(reg_address(14 downto 0) & '0'))));
 
+    with mux_addr select
+        addr_out <= "0000000000000000" when '0',
+                    addr_in when '1',
+                    "XXXXXXXXXXXXXXXX" when others;
+
     process(i_clk, i_rst)
     begin
         if(i_rst = '1') then
@@ -94,27 +99,43 @@ begin
     
     process(i_clk, i_rst)
     begin
+    z0_save <= '0';
+    z1_save <= '0';
+    z2_save <= '0';
+    z3_save <= '0';
         if(i_rst = '1') then
             z0_save <= '0';
             z1_save <= '0';
             z2_save <= '0';
             z3_save <= '0';
         elsif rising_edge(i_clk) then
-            case (bit_0 & bit_1) is
-                when "00" =>
-                    z0_save <= out_save;
-                when "01" =>
-                    z1_save <= out_save;
-                when "10" =>
-                    z2_save <= out_save;
-                when "11" =>
-                    z3_save <= out_save;
-                when others =>
-                    z0_save <= 'X';
-                    z1_save <= 'X';
-                    z2_save <= 'X';
-                    z3_save <= 'X';
-            end case;
+            case bit_0 is
+                when '0' =>
+                case bit_1 is
+                    when '0' => z0_save <= out_save;
+                    when '1' => z1_save <= out_save;
+                    when others => 
+                        z0_save <= 'X';
+                        z1_save <= 'X';
+                        z2_save <= 'X';
+                        z3_save <= 'X';
+                end case;    
+                when '1' =>
+                case bit_1 is
+                    when '0' => z2_save <= out_save;
+                    when '1' => z3_save <= out_save;
+                    when others => 
+                        z0_save <= 'X';
+                        z1_save <= 'X';
+                        z2_save <= 'X';
+                        z3_save <= 'X';
+                end case;
+                when others => 
+                        z0_save <= 'X';
+                        z1_save <= 'X';
+                        z2_save <= 'X';
+                        z3_save <= 'X';
+           end case;     
         end if;
     end process;
     
