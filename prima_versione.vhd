@@ -28,6 +28,8 @@ architecture Behavioral of project_reti_logiche is
     type state_type is (reset, waiting_start, reading_z1_bit, reading_address_bits, waiting_mem, loading_data, saving_data, output_data);
     signal cur_state, next_state : state_type;
 
+    signal init : STD_LOGIC;
+
     signal bit_0 : STD_LOGIC;
     signal bit_1 : STD_LOGIC;
     signal b0_save : STD_LOGIC;
@@ -35,6 +37,8 @@ architecture Behavioral of project_reti_logiche is
 
     signal addr_in : std_logic_vector(15 downto 0);
     signal addr_out : std_logic_vector(15 downto 0);
+    signal addr_back : std_logic_vector(15 downto 0);
+    signal new_bit : std_logic_vector(15 downto 0);
     signal reg_address : std_logic_vector(15 downto 0) := (others => '0');
     signal mux_addr : std_logic;
 
@@ -79,7 +83,9 @@ begin
         end if;
     end process;
 
-    addr_in <= std_logic_vector((unsigned("000000000000000" & i_w) + (unsigned(reg_address(14 downto 0) & '0'))));
+    new_bit <= ("000000000000000" & i_w);
+    addr_back <= (reg_address(14 downto 0) & '0');
+    addr_in <= std_logic_vector(unsigned(new_bit) + unsigned(addr_back));
 
     with mux_addr select
         addr_out <= "0000000000000000" when '0',
@@ -91,7 +97,9 @@ begin
         if(i_rst = '1') then
             reg_address <= "0000000000000000";
         elsif rising_edge(i_clk) then
-            if(addr_save = '1') then
+            if (init = '1') then
+                reg_address <= "0000000000000000"; 
+            elsif (addr_save = '1') then
                 reg_address <= addr_out;
             end if;
         end if;
@@ -140,14 +148,28 @@ begin
     end process;
     
     -- Come leggere e scrivere dalla memoria nel registro reg_data
-    o_mem_addr <= reg_address;
+    process(i_clk, i_rst)
+    begin
+        if(i_rst = '1') then
+            o_mem_addr <= "0000000000000000";
+        elsif rising_edge(i_clk) then
+            if (init = '1') then
+                o_mem_addr <= "0000000000000000"; 
+            else
+                o_mem_addr <= reg_address;
+            end if;
+        end if;
+    end process;
+    
 
     process(i_clk, i_rst)
     begin
         if(i_rst = '1') then
             reg_data <= "00000000";
         elsif rising_edge(i_clk) then
-            if(data_save = '1') then               
+            if (init = '1') then
+                reg_data <= "00000000";
+            elsif(data_save = '1') then               
                 reg_data <= i_mem_data;
             end if;
         end if;
@@ -159,7 +181,9 @@ begin
         if(i_rst = '1') then
             o_z0_reg <= "00000000";
         elsif rising_edge(i_clk) then
-            if(z0_save = '1') then
+            if (init = '1') then
+                o_z0_reg <= "00000000";
+            elsif(z0_save = '1') then
                 o_z0_reg <= reg_data;
             end if;
         end if;
@@ -170,7 +194,9 @@ begin
         if(i_rst = '1') then
             o_z1_reg <= "00000000";
         elsif rising_edge(i_clk) then
-            if(z1_save = '1') then
+            if (init = '1') then
+                o_z1_reg <= "00000000";
+            elsif(z1_save = '1') then
                 o_z1_reg <= reg_data;
             end if;
         end if;
@@ -181,7 +207,9 @@ begin
         if(i_rst = '1') then
             o_z2_reg <= "00000000";
         elsif rising_edge(i_clk) then
-            if(z2_save = '1') then
+            if (init = '1') then
+                o_z2_reg <= "00000000";
+            elsif(z2_save = '1') then
                 o_z2_reg <= reg_data;
             end if;
         end if;
@@ -192,7 +220,9 @@ begin
         if(i_rst = '1') then
             o_z3_reg <= "00000000";
         elsif rising_edge(i_clk) then
-            if(z3_save = '1') then
+            if (init = '1') then
+                o_z3_reg <= "00000000";
+            elsif(z3_save = '1') then
                 o_z3_reg <= reg_data;
             end if;
         end if;
@@ -217,48 +247,53 @@ begin
     begin
         next_state <= cur_state;
 
-            case cur_state is
-                when reset =>
-                    next_state <= waiting_start;
-                    
-                when waiting_start =>
-                    if i_start = '0' then
+            if i_rst = '1' then
+                next_state <= reset;
+            else
+                case cur_state is
+                    when reset =>
                         next_state <= waiting_start;
+                    
+                    when waiting_start =>
+                        if i_start = '1' then
+                            next_state <= reading_z1_bit;
+                        else                            
+                            next_state <= waiting_start;                      
+                        end if;
+
+                    when reading_z1_bit =>
+                    if i_start ='1' then
+                        next_state <= reading_address_bits;
                     else
-                        next_state <= reading_z1_bit;                        
+                        next_state <= waiting_mem;
                     end if;
-
-                when reading_z1_bit =>
-                if i_start ='1' then
-                    next_state <= reading_address_bits;
-                else
-                    next_state <= waiting_mem;
-                end if;
             
-                when reading_address_bits =>
-                if i_start = '1' then
-                    next_state <= reading_address_bits;
-                else
-                    next_state <= waiting_mem;
-                end if;
+                    when reading_address_bits =>
+                    if i_start = '1' then
+                        next_state <= reading_address_bits;
+                    else
+                        next_state <= waiting_mem;
+                    end if;
                 
-                when waiting_mem =>
-                    next_state <= loading_data;
+                    when waiting_mem =>
+                        next_state <= loading_data;
 
-                when loading_data =>
-                    next_state <= saving_data;
+                    when loading_data =>
+                        next_state <= saving_data;
 
-                when saving_data =>
-                    next_state <= output_data;
+                    when saving_data =>
+                        next_state <= output_data;
 
-                when output_data =>
-                    next_state <= waiting_start;
+                    when output_data =>
+                        next_state <= waiting_start;
 
-            end case;
+                end case;
+            end if;
     end process;
 
     process(cur_state)
     begin
+        init <= '0';
         b0_save <= '0';
         b1_save <= '0';
         mux_addr <= '0';
@@ -271,8 +306,7 @@ begin
 
         case cur_state is
             when reset =>
-                -- Inizializzazioni dello stato di reset
-                -- Assegnare valori iniziali ai segnali, se necessario
+                init <= '1';
             when waiting_start =>
                 b0_save <= '1';
             when reading_z1_bit =>
