@@ -1,3 +1,7 @@
+-- Questo tb testa il comportamento del circuito nel caso in cui il numero di bit
+-- in ingresso sul canale i_w sia il minimo (2) o il massimo (18)
+-- Simulato, funziona correttamente sia in pre che in post sintesi
+
 
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
