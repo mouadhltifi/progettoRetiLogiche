@@ -25,7 +25,7 @@ entity project_reti_logiche is
 end project_reti_logiche;
 
 architecture Behavioral of project_reti_logiche is
-    type state_type is (reset, waiting_start, reading_z1_bit, reading_address_bits, waiting_mem, loading_data, selecting_channel,
+    type state_type is (reset, waiting_start, reading_int_bit, reading_address_bits, waiting_mem, loading_data, selecting_channel,
     saving_data, output_data);
     signal cur_state, next_state : state_type;
 
@@ -276,12 +276,12 @@ begin
                         if i_rst ='1' then
                             next_state <= reset;
                         elsif i_start = '1' then
-                            next_state <= reading_z1_bit;
+                            next_state <= reading_int_bit;
                         else                            
                             next_state <= waiting_start;                      
                         end if;
                     
-                    when reading_z1_bit =>
+                    when reading_int_bit =>
                         if i_start ='1' then
                             next_state <= reading_address_bits;
                         else
@@ -338,7 +338,7 @@ begin
                 mux_addr <= '0';
                 addr_save <= '1';
                 b0_save <= '1';
-            when reading_z1_bit =>
+            when reading_int_bit =>
                 b1_save <= '1';
             when reading_address_bits =>
                 mux_addr <= '1';
